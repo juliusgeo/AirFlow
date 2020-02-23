@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[ ]:
 
 
 import pandas as pd
@@ -9,35 +9,37 @@ import numpy as np
 import tensorflow as tf
 
 
-# In[2]:
+# In[ ]:
 
 
 data
 
 
-# In[19]:
+# In[66]:
 
 
 import glob
-data = pd.concat([pd.read_csv(f) for f in glob.glob('*.csv')])
+data = pd.concat([pd.read_csv(f) for f in glob.glob('se*.csv')])
+print(data.columns)
 data.dropna(inplace=True)
 target = data.pop('flowrate')
-#m = np.mean(target)
-#v = np.var(target)
-#target = target-m
-#target = target/m
-print(np.min(target))
+m = np.median(target)
+v = np.var(target)**(.5)
+#target = target-np.min(target)
+#target = (target/v)
+#target = target*(100/np.max(target))
+print(data)
 data.pop('Unnamed: 0')
-batch_size = 64
+batch_size = 256
 training_set_size = int(.2*len(data))
 dataset = tf.data.Dataset.from_tensor_slices((data.values, target.values)).shuffle(len(data)).batch(batch_size, drop_remainder=True)
 testset = dataset.take(training_set_size//batch_size)
-trainset = dataset.skip(training_set_size//batch_size)
+trainset = dataset.skip(training_set_size//batch_size).repeat(10)
 np.any(np.isnan(target))
 len(data)
 
 
-# In[4]:
+# In[ ]:
 
 
 import numpy as np
@@ -48,7 +50,7 @@ from sklearn.model_selection import train_test_split
 import time
 
 
-# In[5]:
+# In[ ]:
 
 
 def mean_absolute_percentage_error(y_true, y_pred): 
@@ -79,36 +81,49 @@ from sklearn.metrics import mean_absolute_error
 print(mean_absolute_percentage_error(b_test, svm_clf.predict(a_test)))
 
 
-# In[4]:
+# In[42]:
 
 
-np.any(np.isnan(target))
+import keras
+import tensorflow as tf
+import tensorflow.keras as keras
+from tensorflow.python.keras import backend as k
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, PReLU
 
 
-# In[22]:
+# In[68]:
 
 
-model = tf.keras.Sequential([
-tf.keras.layers.Dense(500),
-tf.keras.layers.Dense(500),
-tf.keras.layers.Dense(500),
-tf.keras.layers.Dense(1)
-])
-model.compile(optimizer='adam',
+middle_layer_size = 64
+model = Sequential([
+Dense(middle_layer_size, input_shape=(7,)),
+PReLU(),
+Dense(middle_layer_size),
+PReLU(),
+Dense(middle_layer_size),
+PReLU(),
+Dense(middle_layer_size),
+PReLU(),
+Dense(middle_layer_size),
+Dense(1)])
+
+model.compile(optimizer=tf.optimizers.Adam(.01),
             loss='mse',
             metrics=['mape'])
 
 
-# In[9]:
+# In[ ]:
 
 
-model.summary()
+''
 
 
-# In[23]:
+# In[69]:
 
 
-history = model.fit(trainset, validation_data=testset,epochs=100)
+
+history = model.fit(trainset, validation_data=testset,epochs=200)
 # Visualize training history
 import matplotlib.pyplot as plt
 import numpy
@@ -131,13 +146,36 @@ plt.show()
 # In[ ]:
 
 
-len(train)
+tf.keras.utils.plot_model(model, to_file='model.png', show_shapes=True)
 
 
-# In[11]:
+# In[ ]:
+
+
+import glob
+for f in [f for f in glob.glob('*.csv')]:
+    print(f)
+    data = pd.read_csv(f)
+    data.dropna(inplace=True)
+    data.pop('Unnamed: 0')
+    target = data.pop('flowrate')
+    batch_size = 128
+    dataset = tf.data.Dataset.from_tensor_slices((data.values, target.values)).shuffle(len(data)).batch(batch_size, drop_remainder=True)
+    model.evaluate(dataset)
+
+
+# In[ ]:
 
 
 model.summary()
+
+
+# In[55]:
+
+
+for layer in model.layers:
+    w = layer.get_weights()
+    print(w)
 
 
 # In[ ]:
