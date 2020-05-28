@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import pandas as pd
@@ -15,7 +15,7 @@ import tensorflow as tf
 data
 
 
-# In[66]:
+# In[2]:
 
 
 import glob
@@ -81,7 +81,7 @@ from sklearn.metrics import mean_absolute_error
 print(mean_absolute_percentage_error(b_test, svm_clf.predict(a_test)))
 
 
-# In[42]:
+# In[4]:
 
 
 import keras
@@ -92,38 +92,42 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, PReLU
 
 
-# In[68]:
+# In[23]:
 
 
-middle_layer_size = 64
-model = Sequential([
-Dense(middle_layer_size, input_shape=(7,)),
-PReLU(),
-Dense(middle_layer_size),
-PReLU(),
-Dense(middle_layer_size),
-PReLU(),
-Dense(middle_layer_size),
-PReLU(),
-Dense(middle_layer_size),
-Dense(1)])
+def train_model(middle_layer_size):
+    model = Sequential([
+    Dense(middle_layer_size, input_shape=(7,)),
+    PReLU(),
+    Dense(middle_layer_size),
+    PReLU(),
+    Dense(middle_layer_size),
+    PReLU(),
+    Dense(middle_layer_size),
+    PReLU(),
+    Dense(middle_layer_size),
+    Dense(1)])
 
-model.compile(optimizer=tf.optimizers.Adam(.01),
-            loss='mse',
-            metrics=['mape'])
-
-
-# In[ ]:
-
-
-''
+    model.compile(optimizer=tf.optimizers.Adam(.01),
+                loss='mse',
+                metrics=['mape'])
+    history = model.fit(trainset, validation_data=testset,epochs=50)
+    return history
 
 
-# In[69]:
+# In[24]:
+
+
+d = {}
+for i in [7, 200, 1000]:
+    d[i] = train_model(i)
+
+
+# In[20]:
 
 
 
-history = model.fit(trainset, validation_data=testset,epochs=200)
+
 # Visualize training history
 import matplotlib.pyplot as plt
 import numpy
@@ -138,6 +142,21 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.show()
+
+
+# In[30]:
+
+
+for k in d.keys():
+    history = d[k]
+    plt.plot(history.history['mape'])
+    plt.plot(history.history['val_mape'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+plt.legend(['train 7', 'test 7', 'train 200', 'test 200'], loc='upper left')
+plt.show()
+plt.savefig("comparison.jpg")
 
 
 # for pred, true in zip(model.predict(data), target):
@@ -170,11 +189,14 @@ for f in [f for f in glob.glob('*.csv')]:
 model.summary()
 
 
-# In[55]:
+# In[18]:
 
 
+import matplotlib.pyplot as plt
 for layer in model.layers:
     w = layer.get_weights()
+    plt.bar(range(len(w[1])), w[1])
+    plt.savefig("hist2.jpg")
     print(w)
 
 
